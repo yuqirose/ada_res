@@ -144,7 +144,7 @@ class Seq2Seq(nn.Module):
 
         hs = torch.cat(hs, 0)
 
-        inp = Variable(torch.zeros(self.args.batch_size, self.args.state_dim))
+        inp = Variable(torch.zeros(self.args.batch_size, self.args.x_dim))
         if self.args.cuda: inp = inp.cuda()
         ys = []
 

@@ -10,9 +10,11 @@ import matplotlib.pyplot as plt
 """adaptive resolution sequence prediction"""
 
 
-def train(train_loader, epoch, optimizer):
+def train(train_loader, epoch, model, args):
+	optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+
 	train_loss = 0
-	for batch_idx, (data, _) in enumerate(train_loader):
+	for batch_idx, (data, target) in enumerate(train_loader):
 		
 		#transforming data
 		#data = Variable(data)
@@ -22,8 +24,8 @@ def train(train_loader, epoch, optimizer):
 		
 		#forward + backward + optimize
 		optimizer.zero_grad()
-		kld_loss, nll_loss, _, _ = model(data)
-		loss = kld_loss + nll_loss
+		output = model(data)
+        loss = F.mse_loss(output, target)
 		loss.backward()
 		optimizer.step()
 
@@ -35,8 +37,8 @@ def train(train_loader, epoch, optimizer):
 			print('Train Epoch: {} [{}/{} ({:.0f}%)]\t KLD Loss: {:.6f} \t NLL Loss: {:.6f}'.format(
 				epoch, batch_idx * len(data), len(train_loader.dataset),
 				100. * batch_idx / len(train_loader),
-				kld_loss.data[0] / batch_size,
-				nll_loss.data[0] / batch_size))
+				kld_loss.data[0] / args.batch_size,
+				nll_loss.data[0] / args.batch_size))
 
 			sample = model.sample(28)
 			plt.imshow(sample.numpy())
@@ -53,19 +55,16 @@ def test(test_loader, epoch):
 	"""uses test data to evaluate 
 	likelihood of the model"""
 	
-	mean_kld_loss, mean_nll_loss = 0, 0
-	for i, (data, _) in enumerate(test_loader):                                            
+	loss = 0.0
+	for i, (data, target) in enumerate(test_loader):                                            
 		
 		#data = Variable(data)
 		data = Variable(data.squeeze().transpose(0, 1))
 		data = (data - data.min().data[0]) / (data.max().data[0] - data.min().data[0])
 
-		kld_loss, nll_loss, _, _ = model(data)
-		mean_kld_loss += kld_loss.data[0]
-		mean_nll_loss += nll_loss.data[0]
+		output = model(data)
+		loss = F.mse_loss(output, target)
+		loss /= len(test_loader.dataset)
 
-	mean_kld_loss /= len(test_loader.dataset)
-	mean_nll_loss /= len(test_loader.dataset)
-
-	print('====> Test set loss: KLD Loss = {:.4f}, NLL Loss = {:.4f} '.format(
-		mean_kld_loss, mean_nll_loss))
+	print('====> Test set loss: Loss = {:.4f} '.format(
+		loss))
