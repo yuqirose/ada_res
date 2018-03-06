@@ -12,6 +12,7 @@ from torch.utils.data import Dataset
 import torch.optim as optim
 from train import train, test
 import matplotlib.pyplot as plt
+from reader import LorenzDataset
 from seq2seq import Seq2Seq
 
 
@@ -30,9 +31,9 @@ parser.add_argument('--train-size', type=int, default=64, metavar='N')
 parser.add_argument('--val-size', type=int, default=64, metavar='N')
 parser.add_argument('--test-size', type=int, default=64, metavar='N')
 
-parser.add_argument('--input-len', type=int, default=10, metavar='N')
+parser.add_argument('--input-len', type=int, default= 10, metavar='N')
 parser.add_argument('--output-len', type=int, default=90, metavar='N')
-parser.add_argument('--x-dim', type=int, default=28
+parser.add_argument('--x-dim', type=int, default=3
     , metavar='N')
 parser.add_argument('--h-dim', type=int, default=100, metavar='N')
 
@@ -52,10 +53,12 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
                                         help='disables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                                         help='random seed (default: 1)')
+parser.add_argument('--print-freq', type=int, default=10, metavar='N',
+                                        help='how many batches to wait before printing status')
 parser.add_argument('--vis-scalar-freq', type=int, default=10, metavar='N',
-                                        help='how many batches to wait before logging training status')
-parser.add_argument('--ckpt-freq', type=int, default=100, metavar='N',
-                                        help='how many batches to wait before logging training status')
+                                        help='how many batches to wait before visualing results')
+parser.add_argument('--save-freq', type=int, default=100, metavar='N',
+                                        help='how many batches to wait before saving training status')
 parser.add_argument('--num-processes', type=int, default=2, metavar='N')
 parser.add_argument('--valid-freq', type=int, default=500, metavar='N')
 parser.add_argument('--prev-ckpt', default="", help='')
@@ -70,14 +73,19 @@ if __name__ == "__main__":
     if args.cuda and torch.cuda.is_available(): print("Using CUDA")
 
     #init model + optimizer + datasets
-    train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('data', train=True, download=True,
-            transform=transforms.ToTensor()),
-        batch_size=args.batch_size, shuffle=True)
+    # train_loader = torch.utils.data.DataLoader(
+    #     datasets.MNIST('data', train=True, download=True,
+    #         transform=transforms.ToTensor()),
+    #     batch_size=args.batch_size, shuffle=True)
 
-    test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('data', train=False, 
-            transform=transforms.ToTensor()),
+    # test_loader = torch.utils.data.DataLoader(
+    #     datasets.MNIST('data', train=False, 
+    #         transform=transforms.ToTensor()),
+    #     batch_size=args.batch_size, shuffle=True)
+
+    train_loader = torch.utils.data.DataLoader(LorenzDataset(args, args.data_dir, train=True),
+        batch_size=args.batch_size, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(LorenzDataset(args, args.data_dir, train=False),
         batch_size=args.batch_size, shuffle=True)
 
     model = Seq2Seq(args)
@@ -86,10 +94,10 @@ if __name__ == "__main__":
         
         #training + testing
         train(train_loader, epoch, model, args)
-        test(test_loader, epoch)
+        test(test_loader, epoch, model)
 
         #saving model
-        if epoch % save_every == 1:
-            fn = 'saves/vrnn_state_dict_'+str(epoch)+'.pth'
+        if epoch % args.save_freq == 1:
+            fn = 'save/vrnn_state_dict_'+str(epoch)+'.pth'
             torch.save(model.state_dict(), fn)
             print('Saved model to '+fn)

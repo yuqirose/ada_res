@@ -2,6 +2,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.utils
+import torch.nn.functional as F
 import torch.utils.data
 from torchvision import datasets, transforms
 from torch.autograd import Variable
@@ -11,21 +12,21 @@ import matplotlib.pyplot as plt
 
 
 def train(train_loader, epoch, model, args):
-	optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
 	train_loss = 0
+	clip = 10
+	optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+
 	for batch_idx, (data, target) in enumerate(train_loader):
-		
-		#transforming data
-		#data = Variable(data)
-		#to remove eventually, data size 28 (step) x 128 (batch) x 28 (dim)
-		data = Variable(data.squeeze().transpose(0, 1))
-		data = (data - data.min().data[0]) / (data.max().data[0] - data.min().data[0])
-		
+		data, target = Variable(data), Variable(target)
+		data = torch.transpose(data, 0, 1)
+		target = torch.transpose(target, 0, 1)
 		#forward + backward + optimize
 		optimizer.zero_grad()
+
 		output = model(data)
-        loss = F.mse_loss(output, target)
+
+		loss = F.mse_loss(output, target)
 		loss.backward()
 		optimizer.step()
 
@@ -33,16 +34,11 @@ def train(train_loader, epoch, model, args):
 		nn.utils.clip_grad_norm(model.parameters(), clip)
 
 		#printing
-		if batch_idx % print_every == 0:
-			print('Train Epoch: {} [{}/{} ({:.0f}%)]\t KLD Loss: {:.6f} \t NLL Loss: {:.6f}'.format(
+		if batch_idx % args.print_freq == 0:
+			print('Train Epoch: {} [{}/{} ({:.0f}%)]\t Loss: {:.6f}'.format(
 				epoch, batch_idx * len(data), len(train_loader.dataset),
 				100. * batch_idx / len(train_loader),
-				kld_loss.data[0] / args.batch_size,
-				nll_loss.data[0] / args.batch_size))
-
-			sample = model.sample(28)
-			plt.imshow(sample.numpy())
-			plt.pause(1e-6)
+				loss.data[0] / args.batch_size ))
 
 		train_loss += loss.data[0]
 
@@ -51,20 +47,21 @@ def train(train_loader, epoch, model, args):
 		epoch, train_loss / len(train_loader.dataset)))
 
 
-def test(test_loader, epoch):
+def test(test_loader, epoch, model):
 	"""uses test data to evaluate 
 	likelihood of the model"""
 	
 	loss = 0.0
 	for i, (data, target) in enumerate(test_loader):                                            
 		
-		#data = Variable(data)
-		data = Variable(data.squeeze().transpose(0, 1))
-		data = (data - data.min().data[0]) / (data.max().data[0] - data.min().data[0])
+		data, target = Variable(data), Variable(target)
+		data = torch.transpose(data, 0, 1)
+		target = torch.transpose(target, 0, 1)
 
+		# inference
 		output = model(data)
+
 		loss = F.mse_loss(output, target)
 		loss /= len(test_loader.dataset)
 
-	print('====> Test set loss: Loss = {:.4f} '.format(
-		loss))
+	print('====> Test set loss: Loss = {:.4f} '.format(loss.data[0]))
