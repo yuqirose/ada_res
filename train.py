@@ -59,7 +59,7 @@ def train(train_loader, epoch, model, args):
     print('====> Epoch: {} Average loss: {:.4f}'.format(
         epoch, train_loss / len(train_loader.dataset)))
 
-    if PLOT_ON == True:
+    if PLOT_ON == True and epoch %5==0:
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.gca(projection='3d')
@@ -67,7 +67,6 @@ def train(train_loader, epoch, model, args):
         plot_scatter3d(ax,  target[:,0,:].data, 'r')
         plot_scatter3d(ax, output[:,0,:].data, 'b')
         viz.matplot(plt)
-
 
 def test(test_loader, epoch, model):
     """uses test data to evaluate 

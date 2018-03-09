@@ -25,7 +25,11 @@ class LorenzDataset(Dataset):
         # Generate seed
         self.N = int(1e2)
         self.s0 = np.random.rand(self.N, 3)
-
+        self._dt = 0.01
+        
+    @property
+    def dt(self):
+        return self._dt
 
 
     def __len__(self):
@@ -55,7 +59,7 @@ class LorenzDataset(Dataset):
         return np.array([x_dot, y_dot, z_dot])
 
     def gen_lorenz_series(self, s0, num_steps, num_freq):
-        dt = 0.01
+        # dt = 0.01
 
         s = np.empty((num_steps,3))
         s[0] = s0
@@ -67,6 +71,8 @@ class LorenzDataset(Dataset):
                 ss[j] = s[i]
                 j += 1
             sdot = self.lorenz(s[i,0], s[i,1], s[i,2])
-            s[i + 1] = s[i] + sdot  * dt
+            s[i + 1] = s[i] + sdot  * self._dt
 
         return ss
+
+
