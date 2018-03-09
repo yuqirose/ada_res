@@ -6,62 +6,82 @@ import torch.nn.functional as F
 import torch.utils.data
 from torchvision import datasets, transforms
 from torch.autograd import Variable
-import matplotlib.pyplot as plt 
+from plot import plot_scatter3d,plot_seq2seq
+import time
+import numpy as np
+
+# visdom visualization
+import visdom
+viz = visdom.Visdom()
+
+startup_sec = 1
+while not viz.check_connection() and startup_sec > 0:
+    time.sleep(0.1)
+    startup_sec -= 0.1
+assert viz.check_connection(), 'No connection could be formed quickly'
+
+
 
 """adaptive resolution sequence prediction"""
-
-
 def train(train_loader, epoch, model, args):
 
-	train_loss = 0
-	clip = 10
-	optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    train_loss = 0
+    clip = 10
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
-	for batch_idx, (data, target) in enumerate(train_loader):
-		data, target = Variable(data), Variable(target)
-		data = torch.transpose(data, 0, 1)
-		target = torch.transpose(target, 0, 1)
-		#forward + backward + optimize
-		optimizer.zero_grad()
+    for batch_idx, (data, target) in enumerate(train_loader):
+        # plot_seq2seq(data, target)
+        if batch_idx %100 == 0:
+            import matplotlib.pyplot as plt
+            plot_seq2seq(data, target)
+            viz.matplot(plt)
 
-		output = model(data)
-
-		loss = F.mse_loss(output, target)
-		loss.backward()
-		optimizer.step()
-
-		#grad norm clipping, only in pytorch version >= 1.10
-		nn.utils.clip_grad_norm(model.parameters(), clip)
-
-		#printing
-		if batch_idx % args.print_freq == 0:
-			print('Train Epoch: {} [{}/{} ({:.0f}%)]\t Loss: {:.6f}'.format(
-				epoch, batch_idx * len(data), len(train_loader.dataset),
-				100. * batch_idx / len(train_loader),
-				loss.data[0] / args.batch_size ))
-
-		train_loss += loss.data[0]
+        data, target = Variable(data), Variable(target)
+        data = torch.transpose(data, 0, 1)
+        target = torch.transpose(target, 0, 1)
 
 
-	print('====> Epoch: {} Average loss: {:.4f}'.format(
-		epoch, train_loss / len(train_loader.dataset)))
+
+        #forward + backward + optimize
+        optimizer.zero_grad()
+        output = model(data)
+
+        loss = F.mse_loss(output, target)
+        loss.backward()
+        optimizer.step()
+
+        #grad norm clipping, only in pytorch version >= 1.10
+        nn.utils.clip_grad_norm(model.parameters(), clip)
+
+        #printing
+        if batch_idx % args.print_freq == 0:
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\t Loss: {:.6f}'.format(
+                epoch, batch_idx * len(data), len(train_loader.dataset),
+                100. * batch_idx / len(train_loader),
+                loss.data[0] / args.batch_size ))
+
+        train_loss += loss.data[0]
+
+
+    print('====> Epoch: {} Average loss: {:.4f}'.format(
+        epoch, train_loss / len(train_loader.dataset)))
 
 
 def test(test_loader, epoch, model):
-	"""uses test data to evaluate 
-	likelihood of the model"""
-	
-	loss = 0.0
-	for i, (data, target) in enumerate(test_loader):                                            
-		
-		data, target = Variable(data), Variable(target)
-		data = torch.transpose(data, 0, 1)
-		target = torch.transpose(target, 0, 1)
+    """uses test data to evaluate 
+    likelihood of the model"""
+    
+    loss = 0.0
+    for i, (data, target) in enumerate(test_loader):                                            
+        
+        data, target = Variable(data), Variable(target)
+        data = torch.transpose(data, 0, 1)
+        target = torch.transpose(target, 0, 1)
 
-		# inference
-		output = model(data)
+        # inference
+        output = model(data)
 
-		loss = F.mse_loss(output, target)
-		loss /= len(test_loader.dataset)
+        loss = F.mse_loss(output, target)
+        loss /= len(test_loader.dataset)
 
-	print('====> Test set loss: Loss = {:.4f} '.format(loss.data[0]))
+    print('====> Test set loss: Loss = {:.4f} '.format(loss.data[0]))
