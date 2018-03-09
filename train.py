@@ -20,7 +20,7 @@ while not viz.check_connection() and startup_sec > 0:
     startup_sec -= 0.1
 assert viz.check_connection(), 'No connection could be formed quickly'
 
-
+PLOT_ON = True
 
 """adaptive resolution sequence prediction"""
 def train(train_loader, epoch, model, args):
@@ -30,17 +30,9 @@ def train(train_loader, epoch, model, args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     for batch_idx, (data, target) in enumerate(train_loader):
-        # plot_seq2seq(data, target)
-        if batch_idx %100 == 0:
-            import matplotlib.pyplot as plt
-            plot_seq2seq(data, target)
-            viz.matplot(plt)
-
         data, target = Variable(data), Variable(target)
         data = torch.transpose(data, 0, 1)
         target = torch.transpose(target, 0, 1)
-
-
 
         #forward + backward + optimize
         optimizer.zero_grad()
@@ -50,6 +42,7 @@ def train(train_loader, epoch, model, args):
         loss.backward()
         optimizer.step()
 
+        print(output[0,0,:], target[0,0,:])
         #grad norm clipping, only in pytorch version >= 1.10
         nn.utils.clip_grad_norm(model.parameters(), clip)
 
@@ -65,6 +58,15 @@ def train(train_loader, epoch, model, args):
 
     print('====> Epoch: {} Average loss: {:.4f}'.format(
         epoch, train_loss / len(train_loader.dataset)))
+
+    if PLOT_ON == True:
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.gca(projection='3d')
+        plot_scatter3d(ax,  data[:,0,:].data, 'k')
+        plot_scatter3d(ax,  target[:,0,:].data, 'r')
+        plot_scatter3d(ax, output[:,0,:].data, 'b')
+        viz.matplot(plt)
 
 
 def test(test_loader, epoch, model):

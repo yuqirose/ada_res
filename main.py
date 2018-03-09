@@ -32,16 +32,16 @@ parser.add_argument('--val-size', type=int, default=64, metavar='N')
 parser.add_argument('--test-size', type=int, default=64, metavar='N')
 
 parser.add_argument('--input-len', type=int, default= 10, metavar='N')
-parser.add_argument('--output-len', type=int, default=90, metavar='N')
+parser.add_argument('--output-len', type=int, default=30, metavar='N')
 parser.add_argument('--x-dim', type=int, default=3
     , metavar='N')
 parser.add_argument('--h-dim', type=int, default=100, metavar='N')
 
 parser.add_argument('--batch-size', type=int, default=5, metavar='N')
 parser.add_argument('--n-layers', type=int, default=1, metavar='N')
-parser.add_argument('--n-epochs', type=int, default=10, metavar='N',
+parser.add_argument('--n-epochs', type=int, default=50, metavar='N',
                                         help='number of epochs to train (default: 10)')
-parser.add_argument('--lr', type=float, default=1e-5, metavar='LR',
+parser.add_argument('--lr', type=float, default=1e-2, metavar='LR',
                                         help='learning rate (default: 0.01)')
 parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                                         help='SGD momentum (default: 0.5)')
